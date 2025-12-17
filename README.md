@@ -39,8 +39,8 @@ Command-line tool that turns a JSON feature model into a feature diagram SVG. No
 ## Usage
 Run directly (SVG output):
 ```bash
-. .venv/bin/activate
-./feature_diagram.py model.json --out diagram.svg
+source .venv/bin/activate
+python feature_diagram.py model.json --out diagram.svg
 ```
 
 Flags:
