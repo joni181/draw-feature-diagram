@@ -22,9 +22,7 @@
   <line x1="350.0" y1="22.5" x2="505.0" y2="117.5" stroke="black" stroke-width="1.4"/>
   <line x1="350.0" y1="22.5" x2="655.0" y2="117.5" stroke="black" stroke-width="1.4"/>
   <polygon points="350.0,22.5 351.2,46.2 426.2,46.2" fill="black" stroke="black" stroke-width="1.4"/>
-  <line x1="95.0" y1="140.0" x2="107.0" y2="140.0" stroke="#444444" stroke-width="2" stroke-dasharray="5 4" stroke-dashoffset="0" stroke-linecap="round"/>
-  <line x1="107.0" y1="140.0" x2="143.0" y2="140.0" stroke="#444444" stroke-width="2" stroke-dasharray="5 4" stroke-dashoffset="0" stroke-linecap="round"/>
-  <line x1="143.0" y1="140.0" x2="155.0" y2="140.0" stroke="#444444" stroke-width="2" stroke-dasharray="5 4" stroke-dashoffset="0" stroke-linecap="round"/>
+  <line x1="95.0" y1="140.0" x2="155.0" y2="140.0" stroke="#444444" stroke-width="2" stroke-dasharray="5 4" stroke-dashoffset="0" stroke-linecap="round"/>
   <polygon points="155.0,140.0 145.8,143.8 145.8,136.2" fill="#444444" stroke="#444444" stroke-width="1.2"/>
   </g>
 </svg>

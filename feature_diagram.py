@@ -282,15 +282,42 @@ def anchor_with_stub(
     dst: Tuple[float, float],
     src_w: float,
     leaf: bool,
+    force_bottom: bool = False,
+    force_side: bool = False,
 ) -> Tuple[Tuple[float, float], Optional[Tuple[float, float]]]:
     """Compute anchor point on source box and optional stub for orthogonal exit."""
     cx, cy = src
     tx, ty = dst
-    if leaf:
-        anchor = (cx, cy + BOX_H / 2)
-        return anchor, None
     dx = tx - cx
+    dy = ty - cy
+
+    # Prefer vertical anchors if the movement is mostly vertical
+    if force_bottom:
+        anchor = (cx, cy + BOX_H / 2)
+        if leaf:
+            return anchor, None
+        return anchor, (anchor[0], anchor[1] + DEP_ORTHO_OFFSET)
+
+    if force_side:
+        side = 1 if dx >= 0 else -1
+        anchor = (cx + side * src_w / 2, cy)
+        if leaf:
+            return anchor, None
+        return anchor, (anchor[0] + side * DEP_ORTHO_OFFSET, anchor[1])
+
+    if abs(dy) >= abs(dx):
+        if leaf:
+            anchor = (cx, cy - BOX_H / 2) if dy < 0 else (cx, cy + BOX_H / 2)
+            return anchor, None
+        anchor = (cx, cy - BOX_H / 2) if dy < 0 else (cx, cy + BOX_H / 2)
+        stub = (anchor[0], anchor[1] - DEP_ORTHO_OFFSET if dy < 0 else anchor[1] + DEP_ORTHO_OFFSET)
+        return anchor, stub
+
+    # Horizontal preference
     side = 1 if dx >= 0 else -1
+    if leaf:
+        anchor = (cx + side * src_w / 2, cy)
+        return anchor, None
     anchor = (cx + side * src_w / 2, cy)
     stub = (anchor[0] + side * DEP_ORTHO_OFFSET, anchor[1])
     return anchor, stub
@@ -413,13 +440,17 @@ def render_svg(
             (sx, sy),
             (tx, ty),
             width_map[rel.parent],
-            rel.parent not in structural_parents and not adjacent_horizontal,
+            rel.parent not in structural_parents,
+            force_bottom=False,
+            force_side=adjacent_horizontal or False,
         )
         end_anchor, end_stub = anchor_with_stub(
             (tx, ty),
             (sx, sy),
             width_map[rel.child],
-            rel.child not in structural_parents and not adjacent_horizontal,
+            rel.child not in structural_parents,
+            force_bottom=False,
+            force_side=adjacent_horizontal or False,
         )
         dep_color = "#444444"
         dash_offset = dep_index * 2
@@ -441,6 +472,23 @@ def render_svg(
                 points.append(end_stub)
             points.append(end_anchor)
         else:
+            # For routed lines, prefer bottom entry for leaves, side for others.
+            start_anchor, start_stub = anchor_with_stub(
+                (sx, sy),
+                (tx, ty),
+                width_map[rel.parent],
+                rel.parent not in structural_parents,
+                force_bottom=rel.parent not in structural_parents,
+                force_side=rel.parent in structural_parents,
+            )
+            end_anchor, end_stub = anchor_with_stub(
+                (tx, ty),
+                (sx, sy),
+                width_map[rel.child],
+                rel.child not in structural_parents,
+                force_bottom=rel.child not in structural_parents,
+                force_side=rel.child in structural_parents,
+            )
             lane_y = dep_lane_y + len(used_lanes) * DEP_LANE_SPACING
             used_lanes.append(lane_y)
             segments: List[Tuple[float, float]] = [start_anchor]
