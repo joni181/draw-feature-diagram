@@ -107,6 +107,7 @@ DEP_LANE_SPACING = 24
 DEP_MARGIN = 30
 DEP_ORTHO_OFFSET = 12
 DEP_DASH = "5 4"
+HUB_SPAN_THRESHOLD = 240.0
 
 
 def build_child_map(relations: List[Relation]) -> Dict[str, List[str]]:
@@ -345,24 +346,61 @@ def render_svg(
         shapes.append(svg_rect(cx, cy, w, BOX_H, fill="white", stroke="black", stroke_width="1.5"))
         shapes.append(svg_text(cx, cy, feat.name, font_size="14px", fill="black", font_family="Arial, sans-serif"))
 
-    # Mandatory / optional markers
-    for rel in relations:
-        if rel.kind not in {"mandatory", "optional"}:
+    # Mandatory / optional markers (with optional hub line for wide spans)
+    mo_relations = [rel for rel in relations if rel.kind in {"mandatory", "optional"}]
+    mo_children: Dict[str, List[str]] = {}
+    for rel in mo_relations:
+        mo_children.setdefault(rel.parent, []).append(rel.child)
+
+    hub_y_map: Dict[str, float] = {}
+    for parent, kids in mo_children.items():
+        if len(kids) < 2:
             continue
-        px, py = positions[rel.parent]
-        cx, cy = positions[rel.child]
-        start = (px, py + BOX_H / 2)
-        end = (cx, cy - BOX_H / 2)
-        marker_cy = end[1] - MARKER_OFFSET
-        marker_cx = end[0]
-        shapes.append(svg_line(start[0], start[1], marker_cx, marker_cy, stroke="black", stroke_width="1.4"))
-        shapes.append(svg_line(marker_cx, marker_cy, end[0], end[1], stroke="black", stroke_width="1.4"))
-        fill = "black" if rel.kind == "mandatory" else "white"
-        shapes.append(svg_circle(marker_cx, marker_cy, MARKER_RADIUS, stroke="black", stroke_width="1.4", fill=fill))
-        min_x = min(min_x, start[0], end[0], marker_cx) - MARKER_RADIUS
-        max_x = max(max_x, start[0], end[0], marker_cx) + MARKER_RADIUS
-        min_y = min(min_y, start[1], end[1], marker_cy) - MARKER_RADIUS
-        max_y = max(max_y, start[1], end[1], marker_cy) + MARKER_RADIUS
+        xs = [positions[ch][0] for ch in kids]
+        span = max(xs) - min(xs)
+        if span >= HUB_SPAN_THRESHOLD:
+            py = positions[parent][1]
+            parent_bottom = py + BOX_H / 2
+            child_tops = [positions[ch][1] - BOX_H / 2 for ch in kids]
+            avg_child_top = sum(child_tops) / len(child_tops)
+            hub_y_map[parent] = parent_bottom + (avg_child_top - parent_bottom) * 0.5
+
+    for parent, kids in mo_children.items():
+        use_hub = parent in hub_y_map
+        hub_y = hub_y_map.get(parent, 0.0)
+        if use_hub:
+            xs = [positions[ch][0] for ch in kids]
+            line_start = (min(xs), hub_y)
+            line_end = (max(xs), hub_y)
+            shapes.append(svg_line(line_start[0], line_start[1], line_end[0], line_end[1], stroke="black", stroke_width="1.4"))
+            px, py = positions[parent]
+            parent_bottom = (px, py + BOX_H / 2)
+            shapes.append(svg_line(parent_bottom[0], parent_bottom[1], px, hub_y, stroke="black", stroke_width="1.4"))
+            min_x = min(min_x, line_start[0], line_end[0], parent_bottom[0])
+            max_x = max(max_x, line_start[0], line_end[0], parent_bottom[0])
+            min_y = min(min_y, hub_y, parent_bottom[1])
+            max_y = max(max_y, hub_y, parent_bottom[1])
+
+        for rel in mo_relations:
+            if rel.parent != parent:
+                continue
+            cx, cy = positions[rel.child]
+            child_top = cy - BOX_H / 2
+            marker_cy = child_top - MARKER_OFFSET
+            marker_cx = cx
+            if use_hub:
+                shapes.append(svg_line(marker_cx, hub_y, marker_cx, marker_cy, stroke="black", stroke_width="1.4"))
+            else:
+                px, py = positions[parent]
+                start = (px, py + BOX_H / 2)
+                shapes.append(svg_line(start[0], start[1], marker_cx, marker_cy, stroke="black", stroke_width="1.4"))
+            shapes.append(svg_line(marker_cx, marker_cy, cx, child_top, stroke="black", stroke_width="1.4"))
+            fill = "black" if rel.kind == "mandatory" else "white"
+            shapes.append(svg_circle(marker_cx, marker_cy, MARKER_RADIUS, stroke="black", stroke_width="1.4", fill=fill))
+            min_x = min(min_x, marker_cx) - MARKER_RADIUS
+            max_x = max(max_x, marker_cx) + MARKER_RADIUS
+            min_y = min(min_y, marker_cy, child_top, hub_y if use_hub else marker_cy) - MARKER_RADIUS
+            max_y = max(max_y, marker_cy, child_top, hub_y if use_hub else marker_cy) + MARKER_RADIUS
 
     # XOR / OR triangles
     for (parent, _group, kind), children in group_map.items():
