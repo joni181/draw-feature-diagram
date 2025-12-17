@@ -1,0 +1,18 @@
+{
+  "features": [
+    { "id": "Root", "name": "Root Feature" },
+    { "id": "A", "name": "Feature A" },
+    { "id": "B", "name": "Feature B" },
+    { "id": "C1", "name": "Choice 1" },
+    { "id": "C2", "name": "Choice 2" },
+    { "id": "C3", "name": "Choice 3" }
+  ],
+  "relations": [
+    { "kind": "mandatory", "parent": "Root", "child": "A" },
+    { "kind": "optional", "parent": "Root", "child": "B" },
+    { "kind": "or", "parent": "Root", "child": "C1", "group": "choices" },
+    { "kind": "or", "parent": "Root", "child": "C2", "group": "choices" },
+    { "kind": "or", "parent": "Root", "child": "C3", "group": "choices" },
+    { "kind": "dependency", "parent": "A", "child": "B" }
+  ]
+}
