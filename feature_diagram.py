@@ -103,6 +103,10 @@ TRIANGLE_H = 16
 TRIANGLE_GAP = 8
 TEXT_PADDING_X = 16
 AVG_CHAR_W = 7
+DEP_LANE_SPACING = 24
+DEP_MARGIN = 30
+DEP_ORTHO_OFFSET = 12
+DEP_DASH = "5 4"
 
 
 def build_child_map(relations: List[Relation]) -> Dict[str, List[str]]:
@@ -232,6 +236,66 @@ def rect_edge_point(
     return cx + dx * scale, cy + dy * scale
 
 
+def point_in_rect(x: float, y: float, rect: Tuple[float, float, float, float]) -> bool:
+    minx, miny, maxx, maxy = rect
+    return minx <= x <= maxx and miny <= y <= maxy
+
+
+def line_intersect(p1, p2, q1, q2) -> bool:
+    (x1, y1), (x2, y2) = p1, p2
+    (x3, y3), (x4, y4) = q1, q2
+
+    def orient(ax, ay, bx, by, cx, cy):
+        return (bx - ax) * (cy - ay) - (by - ay) * (cx - ax)
+
+    o1 = orient(x1, y1, x2, y2, x3, y3)
+    o2 = orient(x1, y1, x2, y2, x4, y4)
+    o3 = orient(x3, y3, x4, y4, x1, y1)
+    o4 = orient(x3, y3, x4, y4, x2, y2)
+
+    def on_segment(ax, ay, bx, by, cx, cy):
+        return min(ax, bx) <= cx <= max(ax, bx) and min(ay, by) <= cy <= max(ay, by)
+
+    if o1 == 0 and on_segment(x1, y1, x2, y2, x3, y3):
+        return True
+    if o2 == 0 and on_segment(x1, y1, x2, y2, x4, y4):
+        return True
+    if o3 == 0 and on_segment(x3, y3, x4, y4, x1, y1):
+        return True
+    if o4 == 0 and on_segment(x3, y3, x4, y4, x2, y2):
+        return True
+
+    return (o1 > 0) != (o2 > 0) and (o3 > 0) != (o4 > 0)
+
+
+def segment_intersects_rect(p1, p2, rect: Tuple[float, float, float, float]) -> bool:
+    minx, miny, maxx, maxy = rect
+    if point_in_rect(p1[0], p1[1], rect) or point_in_rect(p2[0], p2[1], rect):
+        return True
+    corners = [(minx, miny), (maxx, miny), (maxx, maxy), (minx, maxy)]
+    edges = list(zip(corners, corners[1:] + corners[:1]))
+    return any(line_intersect(p1, p2, a, b) for a, b in edges)
+
+
+def anchor_with_stub(
+    src: Tuple[float, float],
+    dst: Tuple[float, float],
+    src_w: float,
+    leaf: bool,
+) -> Tuple[Tuple[float, float], Optional[Tuple[float, float]]]:
+    """Compute anchor point on source box and optional stub for orthogonal exit."""
+    cx, cy = src
+    tx, ty = dst
+    if leaf:
+        anchor = (cx, cy + BOX_H / 2)
+        return anchor, None
+    dx = tx - cx
+    side = 1 if dx >= 0 else -1
+    anchor = (cx + side * src_w / 2, cy)
+    stub = (anchor[0] + side * DEP_ORTHO_OFFSET, anchor[1])
+    return anchor, stub
+
+
 def render_svg(
     features: Dict[str, Feature],
     relations: List[Relation],
@@ -321,43 +385,114 @@ def render_svg(
         max_y = max(max_y, parent_bottom[1], y_cross)
 
     # Dependencies (dashed arrow)
+    rects = {
+        fid: (
+            positions[fid][0] - width_map[fid] / 2,
+            positions[fid][1] - BOX_H / 2,
+            positions[fid][0] + width_map[fid] / 2,
+            positions[fid][1] + BOX_H / 2,
+        )
+        for fid in positions
+    }
+    dep_lane_y = max(rect[3] for rect in rects.values()) + DEP_MARGIN
+    used_lanes: List[float] = []
+    structural_parents = {
+        rel.parent for rel in relations if rel.kind in {"mandatory", "optional", "xor", "or"}
+    }
+    dep_index = 0
+
     for rel in relations:
         if rel.kind != "dependency":
             continue
         sx, sy = positions[rel.parent]
         tx, ty = positions[rel.child]
-        start = rect_edge_point(sx, sy, tx, ty, width_map[rel.parent], BOX_H)
-        end = rect_edge_point(tx, ty, sx, sy, width_map[rel.child], BOX_H)
+        sibling_like = abs(sy - ty) < BOX_H * 0.75
+        adjacent_horizontal = sibling_like
+
+        start_anchor, start_stub = anchor_with_stub(
+            (sx, sy),
+            (tx, ty),
+            width_map[rel.parent],
+            rel.parent not in structural_parents and not adjacent_horizontal,
+        )
+        end_anchor, end_stub = anchor_with_stub(
+            (tx, ty),
+            (sx, sy),
+            width_map[rel.child],
+            rel.child not in structural_parents and not adjacent_horizontal,
+        )
         dep_color = "#444444"
-        shapes.append(
-            svg_line(
-                start[0],
-                start[1],
-                end[0],
-                end[1],
-                stroke=dep_color,
-                stroke_width="2",
-                stroke_dasharray="5 4",
-                stroke_linecap="round",
+        dash_offset = dep_index * 2
+        dep_index += 1
+
+        # Determine if straight line between anchors would hit any other box.
+        straight_start = start_anchor
+        straight_end = end_anchor
+        occludes = any(
+            fid not in {rel.parent, rel.child} and segment_intersects_rect(straight_start, straight_end, rect)
+            for fid, rect in rects.items()
+        )
+
+        if not occludes:
+            points: List[Tuple[float, float]] = [start_anchor]
+            if start_stub:
+                points.append(start_stub)
+            if end_stub:
+                points.append(end_stub)
+            points.append(end_anchor)
+        else:
+            lane_y = dep_lane_y + len(used_lanes) * DEP_LANE_SPACING
+            used_lanes.append(lane_y)
+            segments: List[Tuple[float, float]] = [start_anchor]
+            if start_stub:
+                segments.append(start_stub)
+            segments.append((segments[-1][0], lane_y))
+            segments.append((end_anchor[0], lane_y))
+            if end_stub:
+                segments.append(end_stub)
+            segments.append(end_anchor)
+            points = segments
+
+        # Draw segments
+        for a, b in zip(points, points[1:]):
+            shapes.append(
+                svg_line(
+                    a[0],
+                    a[1],
+                    b[0],
+                    b[1],
+                    stroke=dep_color,
+                    stroke_width="2",
+                    stroke_dasharray=DEP_DASH,
+                    stroke_dashoffset=str(dash_offset),
+                    stroke_linecap="round",
+                )
             )
-        )
-        angle = math.atan2(end[1] - start[1], end[0] - start[0])
-        arrow_len = 10
-        spread = math.pi / 8
-        tip = end  # glue tip to box edge
-        p1 = (
-            tip[0] - arrow_len * math.cos(angle - spread),
-            tip[1] - arrow_len * math.sin(angle - spread),
-        )
-        p2 = (
-            tip[0] - arrow_len * math.cos(angle + spread),
-            tip[1] - arrow_len * math.sin(angle + spread),
-        )
-        shapes.append(svg_polygon([tip, p1, p2], fill=dep_color, stroke=dep_color, stroke_width="1.2"))
-        min_x = min(min_x, start[0], end[0], tip[0], p1[0], p2[0])
-        max_x = max(max_x, start[0], end[0], tip[0], p1[0], p2[0])
-        min_y = min(min_y, start[1], end[1], tip[1], p1[1], p2[1])
-        max_y = max(max_y, start[1], end[1], tip[1], p1[1], p2[1])
+            min_x = min(min_x, a[0], b[0])
+            max_x = max(max_x, a[0], b[0])
+            min_y = min(min_y, a[1], b[1])
+            max_y = max(max_y, a[1], b[1])
+
+        # Arrowhead at final segment
+        if len(points) >= 2:
+            a, b = points[-2], points[-1]
+            angle = math.atan2(b[1] - a[1], b[0] - a[0])
+            arrow_len = 10
+            spread = math.pi / 8
+            tip = b
+            p1 = (
+                tip[0] - arrow_len * math.cos(angle - spread),
+                tip[1] - arrow_len * math.sin(angle - spread),
+            )
+            p2 = (
+                tip[0] - arrow_len * math.cos(angle + spread),
+                tip[1] - arrow_len * math.sin(angle + spread),
+            )
+            shapes.append(svg_polygon([tip, p1, p2], fill=dep_color, stroke=dep_color, stroke_width="1.2"))
+            min_x = min(min_x, tip[0], p1[0], p2[0])
+            max_x = max(max_x, tip[0], p1[0], p2[0])
+            min_y = min(min_y, tip[1], p1[1], p2[1])
+            max_y = max(max_y, tip[1], p1[1], p2[1])
 
     width = max_x - min_x + 2 * PADDING
     height = max_y - min_y + 2 * PADDING
