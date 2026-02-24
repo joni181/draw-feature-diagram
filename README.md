@@ -53,3 +53,37 @@ Flags:
 - `json_file`: path to the input model.
 - `--out`: output SVG path (default `feature-diagram.svg`).
 - `--write-json`: echo the parsed model to a new JSON file (including both `features` and `reference_features`).
+
+## GUI editor (live preview)
+Launch the desktop editor:
+```bash
+source .venv/bin/activate
+pip install -r requirements.txt
+python feature_diagram_editor.py
+```
+
+Editor highlights:
+- Two-column layout: editor pane (features + relations lists) and live preview pane.
+- Feature list supports normal and reference features in one list.
+- Add feature dialog:
+  - asks for `name`
+  - auto-suggests `id` as lowercased name with underscores and stripped special chars
+  - resolves collisions as `feature_id-1`, `feature_id-2`, ...
+  - allows manual `id` edits
+  - includes a reference-feature toggle
+- Feature and relation edit mode:
+  - drag by handle (`≡`) to reorder
+  - delete by trash icon (`🗑`) with no confirmation
+- Feature and relation list headers include icon buttons for add (`+`), remove selected (`−`), and edit mode (`✎` / `✓`).
+- Click list rows (outside edit mode) to edit details inline in the editor pane (no dialog), with `Apply`, `Delete`, and close (`X`).
+- Load / Save / Save As / Export / Re-export controls in the top toolbar.
+- Preview updates automatically after add/edit/delete/reorder.
+- Preview navigation:
+  - left click: zoom in
+  - right click: zoom out
+  - middle button drag: pan
+  - wheel/trackpad scroll: pan
+  - ctrl/cmd + wheel: zoom
+  - trackpad pinch (macOS native gesture): zoom
+
+Note: the GUI uses PySide6.
