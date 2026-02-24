@@ -1,7 +1,7 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="804.0" height="289.0" viewBox="0 0 804.0 289.0">
-  <g transform="translate(52.0,74.5)">
-  <rect x="292.0" y="-22.5" width="116.0" height="45.0" fill="white" stroke="black" stroke-width="1.5"/>
-  <text x="350.0" y="0.0" text-anchor="middle" dominant-baseline="middle" font-size="14px" fill="black" font-family="Arial, sans-serif">Root Feature</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="877.0" height="441.0" viewBox="0 0 877.0 441.0">
+  <g transform="translate(58.0,80.5)">
+  <rect x="322.5" y="-22.5" width="116.0" height="45.0" fill="white" stroke="black" stroke-width="1.5"/>
+  <text x="380.5" y="0.0" text-anchor="middle" dominant-baseline="middle" font-size="14px" fill="black" font-family="Arial, sans-serif">Root Feature</text>
   <rect x="0.0" y="117.5" width="95.0" height="45.0" fill="white" stroke="black" stroke-width="1.5"/>
   <text x="47.5" y="140.0" text-anchor="middle" dominant-baseline="middle" font-size="14px" fill="black" font-family="Arial, sans-serif">Feature A</text>
   <rect x="155.0" y="117.5" width="95.0" height="45.0" fill="white" stroke="black" stroke-width="1.5"/>
@@ -10,18 +10,23 @@
   <text x="355.0" y="140.0" text-anchor="middle" dominant-baseline="middle" font-size="14px" fill="black" font-family="Arial, sans-serif">Choice 1</text>
   <rect x="460.0" y="117.5" width="90.0" height="45.0" fill="white" stroke="black" stroke-width="1.5"/>
   <text x="505.0" y="140.0" text-anchor="middle" dominant-baseline="middle" font-size="14px" fill="black" font-family="Arial, sans-serif">Choice 2</text>
-  <rect x="610.0" y="117.5" width="90.0" height="45.0" fill="white" stroke="black" stroke-width="1.5"/>
-  <text x="655.0" y="140.0" text-anchor="middle" dominant-baseline="middle" font-size="14px" fill="black" font-family="Arial, sans-serif">Choice 3</text>
-  <line x1="350.0" y1="22.5" x2="47.5" y2="109.5" stroke="black" stroke-width="1.4"/>
+  <rect x="640.5" y="117.5" width="90.0" height="45.0" fill="white" stroke="black" stroke-width="1.5"/>
+  <text x="685.5" y="140.0" text-anchor="middle" dominant-baseline="middle" font-size="14px" fill="black" font-family="Arial, sans-serif">Choice 3</text>
+  <rect x="610.0" y="257.5" width="151.0" height="45.0" fill="white" stroke="black" stroke-width="1.5" stroke-dasharray="6 4"/>
+  <text x="685.5" y="280.0" text-anchor="middle" dominant-baseline="middle" font-size="14px" fill="black" font-family="Arial, sans-serif">Reference Feature</text>
+  <line x1="380.5" y1="22.5" x2="47.5" y2="109.5" stroke="black" stroke-width="1.4"/>
   <line x1="47.5" y1="109.5" x2="47.5" y2="117.5" stroke="black" stroke-width="1.4"/>
   <circle cx="47.5" cy="109.5" r="6.0" stroke="black" stroke-width="1.4" fill="black"/>
-  <line x1="350.0" y1="22.5" x2="202.5" y2="109.5" stroke="black" stroke-width="1.4"/>
+  <line x1="380.5" y1="22.5" x2="202.5" y2="109.5" stroke="black" stroke-width="1.4"/>
   <line x1="202.5" y1="109.5" x2="202.5" y2="117.5" stroke="black" stroke-width="1.4"/>
   <circle cx="202.5" cy="109.5" r="6.0" stroke="black" stroke-width="1.4" fill="white"/>
-  <line x1="350.0" y1="22.5" x2="355.0" y2="117.5" stroke="black" stroke-width="1.4"/>
-  <line x1="350.0" y1="22.5" x2="505.0" y2="117.5" stroke="black" stroke-width="1.4"/>
-  <line x1="350.0" y1="22.5" x2="655.0" y2="117.5" stroke="black" stroke-width="1.4"/>
-  <polygon points="350.0,22.5 351.2,46.2 426.2,46.2" fill="black" stroke="black" stroke-width="1.4"/>
+  <line x1="685.5" y1="162.5" x2="685.5" y2="249.5" stroke="black" stroke-width="1.4"/>
+  <line x1="685.5" y1="249.5" x2="685.5" y2="257.5" stroke="black" stroke-width="1.4"/>
+  <circle cx="685.5" cy="249.5" r="6.0" stroke="black" stroke-width="1.4" fill="black"/>
+  <line x1="380.5" y1="22.5" x2="355.0" y2="117.5" stroke="black" stroke-width="1.4"/>
+  <line x1="380.5" y1="22.5" x2="505.0" y2="117.5" stroke="black" stroke-width="1.4"/>
+  <line x1="380.5" y1="22.5" x2="685.5" y2="117.5" stroke="black" stroke-width="1.4"/>
+  <polygon points="380.5,22.5 374.1,46.2 456.8,46.2" fill="black" stroke="black" stroke-width="1.4"/>
   <line x1="95.0" y1="140.0" x2="155.0" y2="140.0" stroke="#444444" stroke-width="2" stroke-dasharray="5 4" stroke-dashoffset="0" stroke-linecap="round"/>
   <polygon points="155.0,140.0 145.8,143.8 145.8,136.2" fill="#444444" stroke="#444444" stroke-width="1.2"/>
   </g>
