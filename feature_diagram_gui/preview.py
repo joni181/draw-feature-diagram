@@ -48,9 +48,12 @@ class DiagramGraphicsView(QGraphicsView):
         self.setRenderHint(QPainter.RenderHint.Antialiasing, True)
         self.setRenderHint(QPainter.RenderHint.TextAntialiasing, True)
         self.setViewportUpdateMode(QGraphicsView.ViewportUpdateMode.BoundingRectViewportUpdate)
-        self.setBackgroundBrush(QColor("#f6f8fb"))
+        self.setBackgroundBrush(QColor("#ffffff"))
         self.setFrameShape(QGraphicsView.Shape.NoFrame)
         self.setDragMode(QGraphicsView.DragMode.NoDrag)
+        self.setStyleSheet(
+            "QGraphicsView { background: #ffffff; border: 1px solid #2a3a57; border-radius: 10px; }"
+        )
 
         self.setTransformationAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
         self.setResizeAnchor(QGraphicsView.ViewportAnchor.AnchorViewCenter)
@@ -411,14 +414,6 @@ class DiagramGraphicsView(QGraphicsView):
 
     def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
         if event.button() == Qt.MouseButton.LeftButton:
-            self._zoom_by_factor(1.14)
-            event.accept()
-            return
-        if event.button() == Qt.MouseButton.RightButton:
-            self._zoom_by_factor(1 / 1.14)
-            event.accept()
-            return
-        if event.button() == Qt.MouseButton.MiddleButton:
             self._panning = True
             self._pan_last_pos = event.position()
             self.setCursor(Qt.CursorShape.ClosedHandCursor)
@@ -437,7 +432,7 @@ class DiagramGraphicsView(QGraphicsView):
         super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event: QMouseEvent) -> None:  # noqa: N802
-        if event.button() == Qt.MouseButton.MiddleButton:
+        if event.button() == Qt.MouseButton.LeftButton:
             self._panning = False
             self._pan_last_pos = None
             self.setCursor(Qt.CursorShape.ArrowCursor)
@@ -446,26 +441,32 @@ class DiagramGraphicsView(QGraphicsView):
         super().mouseReleaseEvent(event)
 
     def wheelEvent(self, event: QWheelEvent) -> None:  # noqa: N802
-        modifiers = event.modifiers()
-        if modifiers & (Qt.KeyboardModifier.ControlModifier | Qt.KeyboardModifier.MetaModifier):
-            angle_delta = event.angleDelta().y()
-            factor = 1.06 if angle_delta > 0 else 1 / 1.06
-            self._zoom_by_factor(factor)
-            event.accept()
+        delta = event.angleDelta().y()
+        if delta == 0:
+            delta = event.pixelDelta().y()
+        if delta == 0:
+            super().wheelEvent(event)
             return
-        super().wheelEvent(event)
+
+        # Smooth zooming for both wheel and trackpad scrolling.
+        factor = 1.0016 ** delta
+        self._zoom_by_factor(factor)
+        event.accept()
 
     def event(self, event) -> bool:  # noqa: A003
-        if event.type() == QEvent.Type.NativeGesture:
-            native = event
-            if isinstance(native, QNativeGestureEvent):
-                if native.gestureType() == Qt.NativeGestureType.ZoomNativeGesture:
-                    value = native.value()
-                    factor = 1.0 + value
-                    if factor > 0:
-                        self._zoom_by_factor(factor)
-                        return True
-        return super().event(event)
+        try:
+            if event.type() == QEvent.Type.NativeGesture:
+                native = event
+                if isinstance(native, QNativeGestureEvent):
+                    if native.gestureType() == Qt.NativeGestureType.ZoomNativeGesture:
+                        value = native.value()
+                        factor = 1.0 + value
+                        if factor > 0:
+                            self._zoom_by_factor(factor)
+                            return True
+            return super().event(event)
+        except RuntimeError:
+            return False
 
     def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
         super().resizeEvent(event)
